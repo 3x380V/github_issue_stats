@@ -68,6 +68,7 @@ Commander.configure do
     c.option '-s', '--scopes x,y,z', Array, "(required) List of scopes for which stats will be collected. A scope is a username or repo name. Example: --scopes github,rails/rails"
     c.option '-l', '--labels [x,y,z]', Array, "List of labels for which stats will be collected for each scope. A label is an issue or pull request label, or special values 'issues' and 'pulls' representing all issues and all pull requests within the scope respectively. Default: 'issues'."
     c.option '-i', '--interval_length [STRING]', String, "Size of interval for which stats will be aggregated. Intervals are defined with N[hdwmy], where h is hour, d is day, w is week m is month, y is year, and N is a positive integer used as a multiplier. Default: '1w'."
+    c.option '-d', '--start_date [STRING]', String, "Beginning of interval."
     c.option '-n', '--interval_count [INTEGER]', Integer, "Number of intervals for which stats will be collected. Default: 4."
     c.option '-o', '--output_format [STRING]', String, "Format used for output tables with collected stats. Can be 'text' or 'markdown'. Default: 'text'."
 

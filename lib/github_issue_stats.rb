@@ -110,12 +110,19 @@ class GitHubIssueStats
     # set timestamps
 
     if previous_slice.nil? # initial
-      slice[:current_timestamp] = Time.now.utc
-      slice[:previous_timestamp] = get_beginning_of_current_period(slice[:current_timestamp], options[:interval_length])
+      if !options[:start_date].nil?
+        puts "\ndate: #{options[:start_date]}\n"
+        slice[:current_timestamp] = DateTime.rfc3339(options[:start_date]).to_time
+        slice[:previous_timestamp] = compute_previous_time(slice[:current_timestamp], options[:interval_length])
+      else
+        slice[:current_timestamp] = Time.now.utc
+        slice[:previous_timestamp] = get_beginning_of_current_period(slice[:current_timestamp], options[:interval_length])
+      end
     else # not initial
       slice[:current_timestamp] = previous_slice[:previous_timestamp]
       slice[:previous_timestamp] = compute_previous_time(slice[:current_timestamp], options[:interval_length])
     end
+    puts "interval #{slice[:previous_timestamp].strftime "%Y-%m-%d %H:00"} - #{slice[:current_timestamp].strftime "%Y-%m-%d %H:00"}\n"
 
     for scope in options[:scopes]
       scope_stats = {}
@@ -126,23 +133,25 @@ class GitHubIssueStats
         scope_stats[label] = label_stats
 
         # current state
-
         search_options = {
           :scope => scope,
           :label => label,
-          :state => "open"
+          :state => "open",
+          :created_at => {
+            :from => Time.utc(1970),
+            :until => slice[:current_timestamp]
+          }
         }
-
-        if previous_slice.nil?
-          query_string = get_search_query_string(search_options)
-          label_stats[:interval_end_total_url] = get_search_url(query_string)
-          label_stats[:interval_end_total] = get_search_total_results(query_string)
+        query_string = get_search_query_string(search_options)
+        label_stats[:interval_end_total_url] = get_search_url(query_string)
+        label_stats[:interval_end_total] = get_search_total_results(query_string)
+        if !previous_slice.nil?
+          label_stats[:interval_end_total2] = previous_slice[scope][label][:interval_beginning_total]
         else
-          label_stats[:interval_end_total] = previous_slice[scope][label][:interval_beginning_total]
+          label_stats[:interval_end_total2] = label_stats[:interval_end_total]
         end
 
         # number of new issues in period
-
         search_options = {
           :scope => scope,
           :label => label,
@@ -157,7 +166,6 @@ class GitHubIssueStats
         label_stats[:interval_new_total] = get_search_total_results(query_string)
 
         # number of closed issues in period
-
         search_options = {
           :scope => scope,
           :label => label,
@@ -173,8 +181,8 @@ class GitHubIssueStats
         label_stats[:interval_closed_total] = get_search_total_results(query_string)
 
         # number of issues in previous period
-
         label_stats[:interval_beginning_total] = label_stats[:interval_end_total] + label_stats[:interval_closed_total] - label_stats[:interval_new_total]
+        puts "#{label_stats[:interval_end_total]}, #{label_stats[:interval_end_total2]}, #{label_stats[:interval_beginning_total]}, #{label_stats[:interval_new_total]}, #{label_stats[:interval_closed_total]}\n"
 
         @logger.debug "Computed total at beginning of interval: #{label_stats[:interval_beginning_total]}"
       end
